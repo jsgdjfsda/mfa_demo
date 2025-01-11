@@ -40,7 +40,7 @@ class MFADemo:
         # Create QR code image in memory
         img_buffer = io.BytesIO()
         qr_image = qr.make_image(fill_color="black", back_color="white")
-        qr_image.save(img_buffer, format='PNG')
+        qr_image.save(img_buffer)
         img_buffer.seek(0)
         qr_base64 = base64.b64encode(img_buffer.getvalue()).decode()
         
