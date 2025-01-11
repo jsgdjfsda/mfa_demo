@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">MFA Demo Application</h1>
+        
+        <!-- Tab Navigation -->
+        <div class="flex justify-center mb-6">
+            <button onclick="switchTab('register')" class="px-6 py-2 bg-blue-500 text-white rounded-l hover:bg-blue-600">
+                Register Device
+            </button>
+            <button onclick="switchTab('verify')" class="px-6 py-2 bg-green-500 text-white rounded-r hover:bg-green-600">
+                Verify Code
+            </button>
+        </div>
+
+        <!-- Register Tab -->
+        <div id="registerTab" class="tab-content active">
+            <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Register New Device</h2>
+                <div class="mb-4">
+                    <input type="text" id="registerUsername" 
+                           class="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
+                           placeholder="Enter username">
+                </div>
+                <button onclick="registerDevice()" 
+                        class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                    Register
+                </button>
+                <div id="qrCode" class="mt-4 text-center"></div>
+                <div id="registerMessage" class="mt-4 text-center"></div>
+            </div>
+        </div>
+
+        <!-- Verify Tab -->
+        <div id="verifyTab" class="tab-content">
+            <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Verify Code</h2>
+                <div class="mb-4">
+                    <input type="text" id="verifyUsername" 
+                           class="w-full px-3 py-2 border rounded focus:outline-none focus:border-green-500"
+                           placeholder="Enter username">
+                </div>
+                <div class="mb-4">
+                    <input type="text" id="verifyCode" 
+                           class="w-full px-3 py-2 border rounded focus:outline-none focus:border-green-500"
+                           placeholder="Enter code from Google Authenticator">
+                </div>
+                <button onclick="verifyCode()" 
+                        class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
+                    Verify
+                </button>
+                <div id="verifyMessage" class="mt-4 text-center"></div>
+                <div id="rewardImage" class="mt-4 hidden">
+                    <img id="catImage" src="" alt="Congratulations!" class="mx-auto max-w-full h-auto rounded-lg shadow-lg">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tab + 'Tab').classList.add('active');
+        }
+
+        async function registerDevice() {
+            const username = document.getElementById('registerUsername').value;
+            if (!username) {
+                showMessage('registerMessage', 'Username is required', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username }),
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('qrCode').innerHTML = `
+                        <img src="data:image/png;base64,${result.qr_code}" 
+                             alt="QR Code" 
+                             class="mx-auto">
+                        <p class="mt-2 text-sm text-gray-600">
+                            Scan this QR code with Google Authenticator
+                        </p>
+                    `;
+                    showMessage('registerMessage', result.message, 'success');
+                } else {
+                    showMessage('registerMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('registerMessage', 'An error occurred', 'error');
+            }
+        }
+
+        async function verifyCode() {
+            const username = document.getElementById('verifyUsername').value;
+            const code = document.getElementById('verifyCode').value;
+
+            if (!username || !code) {
+                showMessage('verifyMessage', 'Username and code are required', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, code }),
+                });
+
+                const result = await response.json();
+                showMessage('verifyMessage', result.message, result.success ? 'success' : 'error');
+                
+                // Handle reward image
+                const rewardImageDiv = document.getElementById('rewardImage');
+                if (result.success && result.reward_image) {
+                    document.getElementById('catImage').src = `data:image/png;base64,${result.reward_image}`;
+                    rewardImageDiv.classList.remove('hidden');
+                } else {
+                    document.getElementById('catImage').src = `data:image/png;base64,${result.reward_image}`;
+                    rewardImageDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                showMessage('verifyMessage', 'An error occurred', 'error');
+            }
+        }
+
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'mt-4 text-center ' + 
+                (type === 'success' ? 'text-green-600' : 'text-red-600');
+        }
+    </script>
+</body>
+</html>
