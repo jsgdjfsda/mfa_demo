@@ -10,7 +10,7 @@ import base64
 app = Flask(__name__)
 
 class MFADemo:
-    def __init__(self, storage_file="registered_devices.json"):
+    def __init__(self, storage_file="/app/data/registered_devices.json"):
         self.storage_file = Path(storage_file)
         self.devices = self._load_devices()
 
@@ -120,4 +120,4 @@ def verify():
     return jsonify(result)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
